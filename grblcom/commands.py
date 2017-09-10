@@ -28,10 +28,12 @@ def cmd_run(grbl: 'Grbl', input_line: str, token_print):
 
 
 def cmd_check(grbl: 'Grbl', input_line: str, token_print):
-    status = grbl.status()
-    if status[0] != 'Check':
-        lines = grbl.send(b'$C')
-        if b'[Enabled]' not in lines or b'ok' not in lines:
-            raise CommandError('Could not enable g-code checking mode')
+    initial_status = grbl.status()
 
-    cmd_run(grbl, input_line, token_print)
+    try:
+        grbl.enable_check()
+        cmd_run(grbl, input_line, token_print)
+    finally:
+        if initial_status[0] != 'Check':
+            grbl.disable_check()
+

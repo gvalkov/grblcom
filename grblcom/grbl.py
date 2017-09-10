@@ -42,5 +42,17 @@ class Grbl:
         lines = self.send(b'?')
         return lines[0][1:-1].decode('ascii').split(',')
 
+    def enable_check(self):
+        status = self.status()
+        if status[0] != 'Check':
+            lines = self.send(b'$C')
+            return b'[Enabled]' in lines and b'ok' in lines
+
+    def disable_check(self):
+        status = self.status()
+        if status[0] == 'Check':
+            lines = self.send(b'$C')
+            return b'[Disabled]' in lines and b'ok' in lines
+
     def reset(self):
         self.port.write(24)
