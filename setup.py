@@ -49,6 +49,11 @@ kw = {
     'extras_require':       extras_require,
     'packages':             find_packages(),
     'zip_safe':             True,
+    'entry_points': {
+        'console_scripts': [
+            'grblcom = grblcom.__main__:main'
+        ]
+    }
 }
 
 
