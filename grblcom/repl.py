@@ -1,9 +1,12 @@
 import functools
+from prompt_toolkit.contrib.completers import WordCompleter
 
 from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.shortcuts import print_tokens, prompt as cliprompt
+from prompt_toolkit.shortcuts import print_tokens, prompt
 from prompt_toolkit.styles import style_from_dict
 from prompt_toolkit.token import Token
+
+
 
 
 def parse_response(lines):
@@ -43,8 +46,16 @@ def repl(grbl: 'Grbl', args, token_styles, commands):
     token_styles = style_from_dict(token_styles)
     token_print = functools.partial(print_tokens, style=token_styles)
 
+    history = InMemoryHistory()
+    completer = WordCompleter(grbl.gcodes, ignore_case=True)
+
+    prompt_func = functools.partial(
+        prompt, message='> ', history=history, completer=completer,
+    )
+
+
     while True:
-        input_line = prompt(args)
+        input_line = prompt_func(display_completions_in_columns=True)
 
         cmd = is_command(input_line, commands)
         if cmd:
@@ -55,9 +66,3 @@ def repl(grbl: 'Grbl', args, token_styles, commands):
 
             cli_res = parse_response(lines)
             token_print(cli_res)
-
-
-def prompt(args):
-    history = InMemoryHistory()
-    return cliprompt(message='> ', history=history)
-
