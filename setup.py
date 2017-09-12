@@ -13,8 +13,10 @@ classifiers = [
 ]
 
 install_requires = [
+    'ansimarkup',
     'prompt-toolkit>=0.60',
     'pyserial>=3.0',
+    'pyserial-asyncio'
 ]
 
 extras_require = {
