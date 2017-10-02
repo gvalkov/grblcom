@@ -1,3 +1,4 @@
+import logging
 import shlex
 import asyncio
 import textwrap
@@ -7,6 +8,7 @@ from optparse import OptionParser, Option
 
 from ansimarkup import ansiprint
 
+log = logging.getLogger()
 
 class CommandError(Exception):
     pass
@@ -36,6 +38,8 @@ class Command:
             extra_input = request_input()
         else:
             extra_input = None
+        msg = 'Command "%s" called with arguments "%s" parsed into "%s"'
+        log.debug(msg, self.__class__.__name__, args, opts)
 
         return self.run(grbl, cli, opts, args, extra_input)
 

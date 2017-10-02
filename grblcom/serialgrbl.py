@@ -1,7 +1,10 @@
 import asyncio
 import typing
+import logging
 
 import serial_asyncio
+
+log = logging.getLogger()
 
 
 class SerialGrbl:
@@ -18,6 +21,7 @@ class SerialGrbl:
         self.transport = None
 
     async def connect(self):
+        log.debug('Connecting to "%s" with baudrate "%s"', self.device, self.baudrate)
         serial_kwargs = {'baudrate': self.baudrate, 'url': self.device}
         coro = serial_asyncio.open_serial_connection(loop=self.loop, **serial_kwargs)
         self.reader, self.writer = await coro
@@ -36,6 +40,7 @@ class SerialGrbl:
                 return line.rstrip().decode('ascii')
 
     async def wait_for(self, data):
+        log.debug('Waiting for "%s" from grbl', responses)
         while True:
             line = await self.reader.readline()
             if line == data:
@@ -43,6 +48,7 @@ class SerialGrbl:
 
     async def write(self, cmd):
         self.writer.write(cmd.rstrip() + b'\n')
+        log.debug('Serial write: %r', data)
         await self.writer.drain()
 
     async def status(self):

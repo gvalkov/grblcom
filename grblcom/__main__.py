@@ -22,7 +22,8 @@ from . import __version__
 from . import commands
 from . import utils
 
-# logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 log = logging.getLogger()
 
 
@@ -163,6 +164,9 @@ async def main_coro(loop, grbl, cli):
 
 def main(args=sys.argv[1:]):
     parser, args = parseargs(args)
+
+    if args.debug:
+        log.setLevel(logging.DEBUG)
 
     loop = asyncio.get_event_loop()
     grbl = SerialGrbl(args.device, args.baudrate, loop)
