@@ -1,5 +1,4 @@
 import asyncio
-import typing
 import logging
 
 import serial_asyncio
@@ -40,29 +39,43 @@ class SerialGrbl:
             if line.startswith(b'Grbl'):
                 return line.rstrip().decode('ascii')
 
-    async def wait_for(self, data):
+    async def wait_for(self, *responses):
+        '''Wait for a series of responses from grbl.'''
+
         log.debug('Waiting for "%s" from grbl', responses)
+        responses_iter = iter(responses)
+        response = next(responses_iter, None)
+
         while True:
-            line = await self.reader.readline()
-            if line == data:
-                return True
+            line = await self.cmd_read_queue.get()
+            if line == response:
+                response = next(responses_iter, None)
+                if not response:
+                    return True
+            else:
+                return False
 
     async def write(self, cmd):
-        self.writer.write(cmd.rstrip() + b'\n')
+        data = cmd.rstrip() + b'\n'
         log.debug('Serial write: %r', data)
+        self.writer.write(data)
         await self.writer.drain()
 
     async def status(self):
-        self.write(b'?')
-        status = await self.reader.readline()
+        await self.write(b'?')
+        status = await self.cmd_read_queue.get()
+        await self.wait_for('ok')
         return status.split()
 
     async def enable_check(self):
-        async with self.read_lock:
+        try:
+            self.active_queue = self.cmd_read_queue
             status = await self.status()
             if status[0] != 'Check':
-                self.write(b'$C')
-                self.wait_for(b'[Enabled]')
+                await self.write(b'$C')
+                await self.wait_for('[Enabled]', 'ok')
+        finally:
+            self.active_queue = self.read_queue
 
     async def disable_check(self):
         status = self.status()
