@@ -112,9 +112,7 @@ async def repl_coro(grbl, cli, commands):
 
 async def reader_coro(grbl, cli, loop):
     while True:
-        line = await grbl.reader.readline()
-        line = line.rstrip().decode('ascii')
-
+        line = await grbl.read_queue.get()
         # TODO: Using print_tokens/tprint causes strange text output issues
         # TODO: when combined with patch_stdout. We'll just use another
         # TODO: terminal colorization method for now.
@@ -148,6 +146,7 @@ async def main_coro(loop, grbl, cli):
     tprint((Token.Bold, prompt_line), output=cli.output)
 
     tasks = asyncio.gather(
+        asyncio.ensure_future(grbl.read_all()),
         asyncio.ensure_future(reader_coro(grbl, cli, loop)),
         asyncio.ensure_future(repl_coro(grbl, cli, cli_commands))
     )

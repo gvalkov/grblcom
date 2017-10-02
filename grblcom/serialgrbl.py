@@ -13,8 +13,9 @@ class SerialGrbl:
         self.baudrate = baudrate
         self.loop = loop
 
-        self.read_lock = asyncio.Lock()
         self.read_queue = asyncio.Queue()
+        self.cmd_read_queue = asyncio.Queue()
+        self.active_queue = self.read_queue
 
         self.reader = None
         self.writer = None
@@ -73,4 +74,10 @@ class SerialGrbl:
         self.writer.write(b'\x18')  # ctrl+x
         await self.writer.drain()
 
-    async def read_all
+    async def read_all(self):
+        while True:
+            line = await self.reader.readline()
+            line = line.rstrip().decode('ascii')
+            log.debug('Serial read:  %r', line)
+            await self.active_queue.put(line)
+
