@@ -18,3 +18,40 @@ class CompactHelpFormatter(argparse.RawTextHelpFormatter):
             args_string = self._format_args(action, action.dest.upper())
             res = '%s %s' % (res, args_string)
             return res
+
+
+class Signature:
+    __slots__ = 'args', 'kwargs'
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+
+class NonFatalArgumentParser(argparse.ArgumentParser):
+    def parse_known_args(self, args=None, namespace=None):
+        # make sure that args are mutable
+        args = list(args)
+
+        # default Namespace built from parser defaults
+        if namespace is None:
+            namespace = argparse.Namespace()
+
+        # add any action defaults that aren't present
+        for action in self._actions:
+            if action.dest is not argparse.SUPPRESS:
+                if not hasattr(namespace, action.dest):
+                    if action.default is not argparse.SUPPRESS:
+                        setattr(namespace, action.dest, action.default)
+
+        # add any parser defaults that aren't present
+        for dest in self._defaults:
+            if not hasattr(namespace, dest):
+                setattr(namespace, dest, self._defaults[dest])
+
+        # parse the arguments and exit if there are any errors
+        namespace, args = self._parse_known_args(args, namespace)
+        if hasattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR):
+            args.extend(getattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR))
+            delattr(namespace, argparse._UNRECOGNIZED_ARGS_ATTR)
+        return namespace, args
