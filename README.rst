@@ -9,8 +9,7 @@ grblcom
 |pypi| |build| |license|
 
 
-A rich serial console client for GRBL_.
-
+A rich serial console client for the GRBL_ g-code parser and CNC milling controller.
 
 
 Installation
@@ -42,8 +41,9 @@ This project is released under the terms of the `Revised BSD License`_.
     :alt: BSD 3-Clause
 
 .. |build| image:: https://img.shields.io/travis/gvalkov/python-grblcom/master.svg?style=flat-square&label=build
-    :target: http://travis-ci.org/gvalkov/python-grblcom
+    :target: http://travis-ci.org/gvalkov/grblcom
     :alt: Build status
 
 
 .. _`Revised BSD License`: https://raw.github.com/gvalkov/python-grblcom/master/LICENSE
+.. _`GRBL`: https://github.com/gnea/grbl
