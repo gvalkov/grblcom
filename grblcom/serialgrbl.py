@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import contextlib
 
 import serial_asyncio
 
@@ -39,6 +40,14 @@ class SerialGrbl:
             if line.startswith(b'Grbl'):
                 return line.rstrip().decode('ascii')
 
+    @contextlib.contextmanager
+    def cmd_queue_ctx(self):
+        log.debug('Setting active read queue to: command queue')
+        self.active_queue = self.cmd_read_queue
+        yield
+        log.debug('Setting active read queue to: stdout queue')
+        self.active_queue = self.read_queue
+
     async def wait_for(self, *responses):
         '''Wait for a series of responses from grbl.'''
 
@@ -65,17 +74,16 @@ class SerialGrbl:
         await self.write(b'?')
         status = await self.cmd_read_queue.get()
         await self.wait_for('ok')
-        return status.split()
+
+        # Remove <> and split on every comma.
+        return status[1:-1].split(',')
 
     async def enable_check(self):
-        try:
-            self.active_queue = self.cmd_read_queue
+        with self.cmd_queue_ctx():
             status = await self.status()
             if status[0] != 'Check':
                 await self.write(b'$C')
                 await self.wait_for('[Enabled]', 'ok')
-        finally:
-            self.active_queue = self.read_queue
 
     async def disable_check(self):
         status = self.status()

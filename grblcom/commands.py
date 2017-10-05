@@ -7,6 +7,7 @@ import typing
 
 from ansimarkup import ansiprint
 
+from .serialgrbl import SerialGrbl
 from .utils import Signature as Opt, NonFatalArgumentParser
 
 log = logging.getLogger()
@@ -37,11 +38,11 @@ class BaseCommand:
         return cmd_instance
 
     async def __call__(self, grbl, cli, input_line: str, request_input: typing.Callable):
-        args = None
+        args, opts = None, None
         if self._parser:
             args = shlex.split(input_line)[1:]
             try:
-                opts = self._parser.parse_known_args(args)
+                opts, _ = self._parser.parse_known_args(args)
             except argparse.ArgumentError as error:
                 ansiprint(f'<r>error: {error}</r>')
                 return
@@ -58,38 +59,37 @@ class BaseCommand:
 class Run(BaseCommand):
     options = [
         Opt('-m', '--mode', choices=('async', 'sync'), default='sync'),
-        Opt('file', type=argparse.FileType(), nargs='?')
+        Opt('files', type=argparse.FileType(), nargs='*')
     ]
 
-    def file_contents_iter(self, paths):
-        for path in paths:
-            with open(path, 'rb') as fh:
-                for line in fh:
-                    yield line
-
-    async def run(self, cli, opts, extra_input):
-        if args:
-            gcode = self.file_contents_iter(args)
-        else:
-            gcode = extra_input
-
-        if opts.mode == 'sync':
-            return self.run_sync(gcode)
-        elif opts.mode == 'async':
-            return self.run_async(gcode)
-
-    async def run_sync(self, gcode: list):
-        for line in gcode:
-            self.write(line)
-            await self.grbl.expect('ok')
-
-    async def run_async(self, gcode: list):
+    async def run(self, grbl, cli, opts, request_input):
         pass
 
 
-class Check(Run):
-    async def run(self, grbl, cli, opts, request_input):
+class Check(BaseCommand):
+    options = [
+        Opt('-m', '--mode', choices=('async', 'sync'), default='sync'),
+        Opt('-c', '--continue-on-error', action='store_true'),
+        Opt('files', type=argparse.FileType(), nargs='*')
+    ]
+
+    async def run(self, grbl: SerialGrbl, cli, opts, request_input):
         await grbl.enable_check()
+        gcode = (line.rstrip() for fh in opts.files for line in fh)
+        await self.sync_run(grbl, gcode, not opts.continue_on_error)
+
+    async def sync_run(self, grbl: SerialGrbl, gcode, break_on_error=True):
+        with grbl.cmd_queue_ctx():
+            for line in gcode:
+                await grbl.write(line.encode('ascii'))
+                res = await grbl.active_queue.get()
+                ansiprint(f'{line} ... ', end='')
+                if res == 'ok':
+                    ansiprint('<b><g>ok</g></b>')
+                else:
+                    ansiprint(f'<b><r>{res}</r></b>')
+                    if break_on_error:
+                        break
 
 
 class Help(BaseCommand):
