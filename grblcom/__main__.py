@@ -118,7 +118,7 @@ async def reader_coro(grbl, cli, loop):
         # TODO: terminal colorization method for now.
 
         if line == 'ok':
-            ansiprint(f'<b><g>{line}</g></b>')
+            ansiprint('<b><g>ok</g></b>')
             #tprint((Token.Ok, line), output=cli.output)
         elif line.startswith('Grbl') and line.endswith(']'):
             ansiprint(f'<b>{line}</b>')
@@ -127,6 +127,8 @@ async def reader_coro(grbl, cli, loop):
         elif line.startswith('error:'):
             msg = line.split(':', 1)[-1]
             ansiprint(f'<b><r>error:</r></b>{msg}')
+        elif line[0] == '[' and line[-1] == ']':
+            ansiprint(f'<b><y>{line}</y></b>')
         else:
             #tprint((Token, line), output=cli.output)
             print(line)

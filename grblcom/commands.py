@@ -83,13 +83,17 @@ class Check(BaseCommand):
             for line in gcode:
                 await grbl.write(line.encode('ascii'))
                 res = await grbl.active_queue.get()
+
                 ansiprint(f'{line} ... ', end='')
                 if res == 'ok':
                     ansiprint('<b><g>ok</g></b>')
-                else:
+                elif res.startswith('error:'):
                     ansiprint(f'<b><r>{res}</r></b>')
                     if break_on_error:
                         break
+                else:
+                    await grbl.read_queue.put(res)
+
 
 
 class Help(BaseCommand):
