@@ -79,7 +79,7 @@ class Check(BaseCommand):
         await self.sync_run(grbl, gcode, not opts.continue_on_error)
 
     async def sync_run(self, grbl: SerialGrbl, gcode, break_on_error=True):
-        with grbl.cmd_queue_ctx():
+        with grbl.control_queue_ctx():
             for line in gcode:
                 await grbl.write(line.encode('ascii'))
                 res = await grbl.active_queue.get()
@@ -92,7 +92,7 @@ class Check(BaseCommand):
                     if break_on_error:
                         break
                 else:
-                    await grbl.read_queue.put(res)
+                    await grbl.stdout_queue.put(res)
 
 
 

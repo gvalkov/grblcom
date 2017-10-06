@@ -112,7 +112,7 @@ async def repl_coro(grbl, cli, commands):
 
 async def reader_coro(grbl, cli, loop):
     while True:
-        line = await grbl.read_queue.get()
+        line = await grbl.stdout_queue.get()
         # TODO: Using print_tokens/tprint causes strange text output issues
         # TODO: when combined with patch_stdout. We'll just use another
         # TODO: terminal colorization method for now.

@@ -13,9 +13,9 @@ class SerialGrbl:
         self.baudrate = baudrate
         self.loop = loop
 
-        self.read_queue = asyncio.Queue()
-        self.cmd_read_queue = asyncio.Queue()
-        self.active_queue = self.read_queue
+        self.stdout_queue = asyncio.Queue()
+        self.control_queue = asyncio.Queue()
+        self.active_queue = self.stdout_queue
 
         self.reader = None
         self.writer = None
@@ -41,17 +41,17 @@ class SerialGrbl:
                 return line.rstrip().decode('ascii')
 
     @contextlib.contextmanager
-    def cmd_queue_ctx(self):
+    def control_queue_ctx(self):
         log.debug('Setting active read queue to: command queue')
-        self.active_queue = self.cmd_read_queue
+        self.active_queue = self.control_queue
         yield
         log.debug('Setting active read queue to: stdout queue')
 
-        while self.cmd_read_queue.qsize() > 0:
-            line = self.cmd_read_queue.get_nowait()
-            self.read_queue.put_nowait(line)
+        while self.control_queue.qsize() > 0:
+            line = self.control_queue.get_nowait()
+            self.stdout_queue.put_nowait(line)
 
-        self.active_queue = self.read_queue
+        self.active_queue = self.stdout_queue
 
     async def wait_for(self, *responses):
         '''Wait for a series of responses from grbl.'''
@@ -61,7 +61,7 @@ class SerialGrbl:
         response = next(responses_iter, None)
 
         while True:
-            line = await self.cmd_read_queue.get()
+            line = await self.control_queue.get()
             if line == response:
                 response = next(responses_iter, None)
                 if not response:
@@ -77,14 +77,14 @@ class SerialGrbl:
 
     async def status(self):
         await self.write(b'?')
-        status = await self.cmd_read_queue.get()
+        status = await self.control_queue.get()
         await self.wait_for('ok')
 
         # Remove <> and split on every comma.
         return status[1:-1].split(',')
 
     async def enable_check(self):
-        with self.cmd_queue_ctx():
+        with self.control_queue_ctx():
             status = await self.status()
             if status[0] != 'Check':
                 await self.write(b'$C')
