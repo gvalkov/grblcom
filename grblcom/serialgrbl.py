@@ -46,6 +46,11 @@ class SerialGrbl:
         self.active_queue = self.cmd_read_queue
         yield
         log.debug('Setting active read queue to: stdout queue')
+
+        while self.cmd_read_queue.qsize() > 0:
+            line = self.cmd_read_queue.get_nowait()
+            self.read_queue.put_nowait(line)
+
         self.active_queue = self.read_queue
 
     async def wait_for(self, *responses):
@@ -101,4 +106,3 @@ class SerialGrbl:
             line = line.rstrip().decode('ascii')
             log.debug('Serial read:  %r', line)
             await self.active_queue.put(line)
-
